@@ -1,3 +1,15 @@
-# Create React dApp -- Ethereum Starter app.
+# Basic Sample Hardhat Project
 
-This project was bootstrapped with the Ethereum Starter App [Create React dApp](https://github.com/mjhm/create-react-dapp), which leverages the latest [Create React App](https://github.com/facebook/create-react-app/blob/master/packages/react-scripts/template/README.md) and layers a template for creating Ethereum dApps using [TruffleFramework](http://truffleframework.com/docs/) and [Web3](https://github.com/ethereum/wiki/wiki/JavaScript-API)
+This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts.
+
+Try running some of the following tasks:
+
+```shell
+npx hardhat accounts
+npx hardhat compile
+npx hardhat clean
+npx hardhat test
+npx hardhat node
+node scripts/deploy.js
+npx hardhat help
+```

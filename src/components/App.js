@@ -1,67 +1,100 @@
-// @flow
-
-import * as React from 'react';
-import { Container } from 'reactstrap';
-import VotingTable from './VotingTable';
-import fetchContracts from '../helpers/fetchContracts';
-import Voting from '../helpers/Voting';
-import reactLogo from '../reactLogo.svg';
-import ethereumLogo from '../ethereumLogo.svg';
 import './App.css';
+import { useState } from 'react';
+import { ethers } from 'ethers';
+import Greeter from '../artifacts/contracts/Greeter.sol/Greeter.json';
+import Token from '../artifacts/contracts/Token.sol/Token.json';
 
-type Props = { network: string };
+// Update with the contract address logged out to the CLI when it was deployed
+const greeterAddress = '0x5FC8d32690cc91D4c39d9d3abcBD16989F875707';
+const tokenAddress = '0x0165878A594ca255338adfa4d48449f69242Eb8F';
 
-type State = {
-  votePending: boolean,
-  votes: any,
-  poll: any,
-};
+function App() {
+  // store greeting in local state
+  const [greeting, setGreetingValue] = useState();
+  const [userAccount, setUserAccount] = useState();
+  const [amount, setAmount] = useState();
 
-class App extends React.Component<Props, State> {
-  constructor(props: { network: string }) {
-    super(props);
-    this.state = {
-      votePending: false,
-      votes: null,
-      poll: null,
-    };
+  // request access to the user's MetaMask account
+  async function requestAccount() {
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
   }
 
-  async componentDidMount(): any {
-    const { contracts } = await fetchContracts(this.props.network, ['Voting']);
-    const poll = new Voting(contracts.Voting);
-    await poll.initCandidateList();
-    const votes = await poll.fetchCandidateVotes();
-    this.setState({
-      votes,
-      poll,
-    });
+  // call the smart contract, read the current greeting value
+  async function fetchGreeting() {
+    if (typeof window.ethereum !== 'undefined') {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const contract = new ethers.Contract(
+        greeterAddress,
+        Greeter.abi,
+        provider,
+      );
+      try {
+        const data = await contract.greet();
+        console.log('data: ', data);
+      } catch (err) {
+        console.log('Error: ', err);
+      }
+    }
   }
 
-  voteHandler = (name: string) => async () => {
-    this.setState({ votePending: true });
-    const votes = await this.state.poll.voteForCandidate(name);
-    this.setState({ votes, votePending: false });
-  };
-
-  render() {
-    return (
-      <Container>
-        <h1>
-          <img src={reactLogo} alt="reactLogo" /> React, meet Ethereum{' '}
-          <img src={ethereumLogo} alt="reactLogo" />{' '}
-        </h1>
-        {this.state.votes ? (
-          <VotingTable
-            candidateList={this.state.poll.candidateList}
-            votes={this.state.votes}
-            voteHandler={this.voteHandler}
-            votePending={this.state.votePending}
-          />
-        ) : null}
-      </Container>
-    );
+  async function getBalance() {
+    if (typeof window.ethereum !== 'undefined') {
+      const [account] = await window.ethereum.request({
+        method: 'eth_requestAccounts',
+      });
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const contract = new ethers.Contract(tokenAddress, Token.abi, provider);
+      const balance = await contract.balanceOf(account);
+      console.log('Balance: ', balance.toString());
+    }
   }
+
+  // call the smart contract, send an update
+  async function setGreeting() {
+    if (!greeting) return;
+    if (typeof window.ethereum !== 'undefined') {
+      await requestAccount();
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      const contract = new ethers.Contract(greeterAddress, Greeter.abi, signer);
+      const transaction = await contract.setGreeting(greeting);
+      await transaction.wait();
+      fetchGreeting();
+    }
+  }
+
+  async function sendCoins() {
+    if (typeof window.ethereum !== 'undefined') {
+      await requestAccount();
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      const contract = new ethers.Contract(tokenAddress, Token.abi, signer);
+      const transation = await contract.transfer(userAccount, amount);
+      await transation.wait();
+      console.log(`${amount} Coins successfully sent to ${userAccount}`);
+    }
+  }
+
+  return (
+    <div className="App">
+      <header className="App-header">
+        <button onClick={fetchGreeting}>Fetch Greeting</button>
+        <button onClick={setGreeting}>Set Greeting</button>
+        <input
+          onChange={e => setGreetingValue(e.target.value)}
+          placeholder="Set greeting"
+        />
+
+        <br />
+        <button onClick={getBalance}>Get Balance</button>
+        <button onClick={sendCoins}>Send Coins</button>
+        <input
+          onChange={e => setUserAccount(e.target.value)}
+          placeholder="Account ID"
+        />
+        <input onChange={e => setAmount(e.target.value)} placeholder="Amount" />
+      </header>
+    </div>
+  );
 }
-
 export default App;
